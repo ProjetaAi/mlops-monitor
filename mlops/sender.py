@@ -28,4 +28,3 @@ class DatadogLogger:
                 api_response = api_instance.submit_log(body)
             except ApiException as e:
                 logging.error("Exception when calling LogsApi->submit_log: %s\n", e)
-
