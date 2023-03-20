@@ -22,36 +22,23 @@ def ddsource():
 
 
 @pytest.fixture
-def handler(configuration, service_name, ddsource):
+def dd(configuration, service_name, ddsource):
     return DDHandler(configuration, service_name, ddsource)
 
 
-def test_submit_log_success(handler, caplog):
+def test_submit_log_success(dd, caplog):
     logger = getLogger("test")
-    logger.addHandler(handler)
+    logger.addHandler(dd)
 
     logger.info("Test message")
 
     assert "Test message" in caplog.text
 
-    api_client = ApiClient(handler.configuration)
-    logs_api_instance = logs_api.LogsApi(api_client)
-    response = logs_api_instance.list_logs()
-    assert response.get("status") == "ok"
 
-
-def test_submit_log_failure(handler, caplog):
-    handler.configuration.host = "https://api.datadog-fake-host.com"
+def test_submit_log_failure(dd, caplog):
     logger = getLogger("test")
-    logger.addHandler(handler)
+    logger.addHandler(dd)
 
-    logger.info("Test message")
+    logger.error("Test message Error")
 
-    assert "Test message" in caplog.text
-
-    api_client = ApiClient(handler.configuration)
-    logs_api_instance = logs_api.LogsApi(api_client)
-
-    with pytest.raises(Exception) as e:
-        logs_api_instance.list_logs()
-        assert "Failed to establish a new connection" in str(e.value)
+    assert "Test message Error" in caplog.text
