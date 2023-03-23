@@ -2,6 +2,11 @@
 
 A MLOps Monitor é uma biblioteca de monitoramento de Machine Learning Operations (MLOps) que permite coletar logs, métricas e dados do modelo e execução em um ambiente de produção.
 
+
+
+Uma das principais características da MLOps Monitor é que ela é um wrapper escrito em cima da SDK (Software Development Kit) do Datadog. Isso significa que a MLOps Monitor utiliza a SDK do Datadog para realizar a coleta, processamento e envio dos dados de monitoramento para a plataforma do Datadog.
+
+
 ## Funcionalidades
 
 * Coletar logs (concluído)
