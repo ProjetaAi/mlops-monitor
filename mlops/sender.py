@@ -40,18 +40,27 @@ class DDHandler(StreamHandler):
 
 class DDmetric():
     def __init__(self, api_key,):
-        os.environ['DD_API_KEY'] = api_key
-        os.environ['DD_SITE'] = "datadoghq.com"
-        os.system( 'bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script_agent7.sh)"')
+        self.api_key = api_key
+
+    def config(self):
         options = {
-        'api_key': api_key,
+        'api_key': self.api_key,
         'statsd_host':'127.0.0.1',
         'statsd_port':8125
         }
         initialize(**options)
 
-    def send(self,type, metric, value, tags,sample_rate=None):
-        match type:
+
+            
+
+class Metrics(object):
+    def __init__(self, api_key):
+        self.api_key = api_key
+        self.config = DDmetric(self.api_key)
+        self.config.config() #inicia o ambiente de configuração do datadog
+
+    def _publish(self, tipo, metric, value, tags, sample_rate=None):
+        match tipo:
             case "increment":
                 statsd.increment(metric, value, tags=tags, sample_rate=sample_rate)
             case "decrement":
@@ -66,5 +75,6 @@ class DDmetric():
                 statsd.timed(metric, tags=tags, sample_rate=sample_rate)
             case "distribution":
                 statsd.distribution(metric, value, tags=tags, sample_rate=sample_rate)
-            
-        
+
+    def send(self,tipo, metric, value, tags, sample_rate=None):
+        self._publish(tipo, metric, value, tags, sample_rate)
