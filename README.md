@@ -5,7 +5,7 @@ A MLOps Monitor é uma biblioteca de monitoramento de Machine Learning Operation
 ## Funcionalidades
 
 * Coletar logs (concluído)
-* Coletar métricas (em andamento)
+* Coletar métricas (concluído)
 * Coletar dados do modelo e execução (em andamento)
 
 # Uso de Logs
@@ -25,6 +25,20 @@ console.info({"test":"Olá Mundo"})
 console.error({"test":"Olá Mundo"})
 ```
 
+# Uso de métricas
+Este pacote disponibiliza a criação de métricas do DataDog. Estas são importantes para medir diversas informações e acompanhar evoluções dos dados.
+
+Para sua utilização, tenha em mãos uma chave da API do DataDog e utilize a biblioteca. Exemplo:
+
+```python
+from mlops.sender import DDmetric
+
+dd = DDmetric(api_key)
+
+dd.send(tipo, nome, valor,tags,sample_rate)
+
+```
+Os tipos de métricas podem ser encontrados [aqui](https://docs.datadoghq.com/metrics/custom_metrics/dogstatsd_metrics_submission/).
 # Instalação
 
 Para instalar a biblioteca, basta executar o seguinte comando:
