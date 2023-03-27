@@ -31,9 +31,9 @@ Este pacote disponibiliza a criação de métricas do DataDog. Estas são import
 Para sua utilização, tenha em mãos uma chave da API do DataDog e utilize a biblioteca. Exemplo:
 
 ```python
-from mlops.sender import DDmetric
+from mlops.sender import Metrics
 
-dd = DDmetric(api_key)
+dd = Metrics(api_key)
 
 dd.send(tipo, nome, valor,tags,sample_rate)
 
