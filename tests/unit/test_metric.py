@@ -8,26 +8,9 @@ from mlops.sender import DDHandler, Metrics
 
 
 @pytest.fixture
-def configuration():
-    return Configuration()
-
-
-@pytest.fixture
-def service_name():
-    return "test-service"
-
-
-@pytest.fixture
-def ddsource():
-    return "test-ddsource"
-
-@pytest.fixture
 def api_key():
     return "test_api_key"
 
-@pytest.fixture
-def handler(configuration, service_name, ddsource):
-    return DDHandler(configuration, service_name, ddsource)
 
 @pytest.fixture
 def metric(api_key):
