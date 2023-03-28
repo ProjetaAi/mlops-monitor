@@ -78,3 +78,4 @@ class Metrics(object):
 
     def send(self,tipo, metric, value, tags, sample_rate=None):
         self._publish(tipo, metric, value, tags, sample_rate)
+        return 1
