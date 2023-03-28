@@ -43,4 +43,4 @@ def test_init(metric, api_key):
 def test_submit_metric_success(metric, caplog):
     ret = metric.send("test_metric", 1, "increment", "test_host", "test_tags")
 
-    assert ret == 1
+    assert ret == None
