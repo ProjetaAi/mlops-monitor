@@ -1,7 +1,7 @@
 import logging
 from mlops.sender import DDHandler
 from datadog_api_client.v2 import Configuration
-from mlops.formater import Formater
+from mlops.formatter import Formatter
 
 class Logging(object):
     def __init__(self, service_name, ddsource, logger_name='demoapp'):
@@ -41,9 +41,9 @@ class Lodge(object):
         self.config = config
 
     def info(self, data):
-        data = Formater.join_dict(data, self.config)
+        data = Formatter.join_dict(data, self.config)
         self.logger.logger.info(data)
 
     def error(self, data):
-        data = Formater.join_dict(data, self.config)
+        data = Formatter.join_dict(data, self.config)
         self.logger.logger.error(data)    

@@ -1,4 +1,4 @@
-class Formater(object):
+class Formatter(object):
     
     @staticmethod
     def join_dict(data,  config):
