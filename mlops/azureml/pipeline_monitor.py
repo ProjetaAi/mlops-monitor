@@ -111,7 +111,7 @@ class Pipeline_monitor:
             pipe_details = {
                 'experiment_name': last_pipeline.experiment.name,
                 'display_name': last_pipeline.display_name,
-                'runId': pipe.get('runId'),
+                'runId_pipeline': pipe.get('runId'),
                 'status': pipe.get('status'),
                 'TimeRunning_min': self.mesure_delta_time(
                     pipe.get('startTimeUtc'), pipe.get('endTimeUtc')),
@@ -233,9 +233,9 @@ class Pipeline_monitor:
             return df[df['year_month'] == (today.year, today.month)]
 
     def experiments_filter(self: "Pipeline_monitor",
-                           experimentos: list[str]) -> list:
+                           experimentos: list[str],
+                           experiments_ws: list[str]) -> list:
         """Filtra os experimentos de acordo com a lista passada de input."""
-        experiments_ws = self.get_experiment_list()
         if len(experimentos) == 0:
             # Coleta os experimentos disponiveis no workspace
             filtered_experiments = experiments_ws
@@ -262,7 +262,9 @@ class Pipeline_monitor:
         gs.create_workspace()
 
         # Filtra os experimentos passados como argumento, caso padrão:todos
-        final_experiment_list = gs.experiments_filter(experimentos)
+        experiments_ws = gs.get_experiment_list()
+        final_experiment_list = gs.experiments_filter(experimentos,
+                                                      experiments_ws)
 
         # Itera os experimentos
         output_pipeline = pd.DataFrame()
@@ -273,7 +275,7 @@ class Pipeline_monitor:
             pipeline_list_generator = gs.get_pipeline_list_generator(exp)
 
             # Determina o tipo de rodagem
-            if tipo == 'last':  # 17m50
+            if tipo == 'last':
                 pipeline_list = gs.get_last_pipeline(pipeline_list_generator)
                 pipeline_details = gs.iterate_pipelines(pipeline_list)
                 step_lists = gs.get_steps(pipeline_list)
