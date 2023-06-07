@@ -8,13 +8,6 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 
-config_workspace = {
-                    "subscription_id": "<escreva seu subscription_id>",
-                    "resource_group": "<escreva o resource_group>",
-                    "workspace_name": "<escreva o workspace_name>"
-}
-
-
 class Pipeline_monitor:
     """Classe utilizada para monitorar os status dos pipelines e dos steps."""
 
@@ -23,6 +16,9 @@ class Pipeline_monitor:
 
         args:
             config_workspace: Dict contendo as chaves de acesso do workspace
+            config_workspace = {"subscription_id": "",
+                                "resource_group": "",
+                                "workspace_name": ""}
         """
         self.credential = config_workspace
 
@@ -73,6 +69,8 @@ class Pipeline_monitor:
             last_pipeline = [pipeline_list_generator.__next__()]
         except StopIteration:
             last_pipeline = []
+            raise StopIteration("Confira se há execuções do pipeline no histórico.")
+            
 
         return last_pipeline
 
@@ -88,13 +86,13 @@ class Pipeline_monitor:
                           end: str) -> timedelta:
         """Retorna o tempo de execução do pipeline."""
         format = "%Y-%m-%dT%H:%M:%S.%fZ"
-        try:
+        if (len(start) & len(end)) != None:
             dt1 = datetime.strptime(start, format)
             dt2 = datetime.strptime(end, format)
             difference = dt2 - dt1
             return difference.total_seconds()/60
-        except TypeError:
-            return 0
+        else:
+            return None
 
     def get_pipeline_details(self: "Pipeline_monitor",
                              last_pipeline: PipelineRun) -> dict:
@@ -106,7 +104,7 @@ class Pipeline_monitor:
         Returns:
             Retorna um dict contendo as informações escohidas
         """
-        if last_pipeline != 0:
+        try:
             pipe = last_pipeline.get_details()
             pipe_details = {
                 'experiment_name': last_pipeline.experiment.name,
@@ -121,6 +119,12 @@ class Pipeline_monitor:
                     pipe.get('startTimeUtc'), "%Y-%m-%dT%H:%M:%S.%fZ").date(),
                 'url_run': last_pipeline.get_portal_url()
             }
+        except AttributeError:
+            pipe_details = {}
+            raise AttributeError(
+                f"Houve um erro durante a captura dos detalhes dos pipelines." 
+                f"Favor validar na AzureML se as informações estão disponíveis."
+            )
 
         return pipe_details
 
@@ -141,30 +145,27 @@ class Pipeline_monitor:
         return pipelines_details
 
     def get_steps(self: "Pipeline_monitor",
-                  last_pipeline: PipelineRun) -> list:
+                  pipelines: PipelineRun) -> list:
         """Responsável por extrair os steps.
 
         :param last_pipeline:
         :type last_pipeline: dict
         """
         step_list = []
-        for step in last_pipeline:
-            try:
-                step_list += list(step.get_steps())
-            except IndexError:
-                pass
-            except AttributeError:
-                pass
-
+        try:
+            for pipeline in pipelines:
+                step_list += list(pipeline.get_steps())
+        except IndexError:
+            step_list = []
+            raise IndexError("Confira se há steps ex no pipeline.")
         return step_list
 
     def get_steps_details(self: "Pipeline_monitor",
-                          step: list) -> dict:
+                          step: PipelineRun) -> dict:
         """Responsável por extrair os detalhes do step.
 
         Args:
             steps: child run de um pipeline
-            position: variável utilizada para iterar o a lista de steps
         Returns:
             dicionário contendo os detalhes de cada step
         """
@@ -192,6 +193,10 @@ class Pipeline_monitor:
 
         except AttributeError:
             step_details = {}
+            raise AttributeError(
+                f"Houve um erro durante a captura dos detalhes dos steps." 
+                f"Favor validar na AzureML se as informações estão disponíveis."
+            )
 
         return step_details
 
@@ -249,6 +254,7 @@ class Pipeline_monitor:
 
     def run(self: "Pipeline_monitor",
             tipo: str,
+            config_workspace: dict,
             experimentos: list[str] = []) -> pd.DataFrame:
         """Executa a classe Pipeline_monitor.
 
