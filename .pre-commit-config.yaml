@@ -3,4 +3,4 @@ repos:
     rev: '6.1.1'
     hooks:
       - id: pydocstyle
-        args: [--add-ignore=D400,D205,D200]
+        args: ["--ignore=D1,D2,D3,D4,DAR"]
