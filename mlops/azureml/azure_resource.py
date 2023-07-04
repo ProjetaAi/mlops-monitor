@@ -1,6 +1,6 @@
 from functools import partial
 from azureml.core import Run
-from typing import Generator, TypedDict, Iterable
+from typing import Callable, Generator, TypedDict, Iterable
 from azureml.core import Workspace, Experiment
 from azure.ai.ml import MLClient
 from azure.identity import AzureCliCredential
@@ -51,7 +51,7 @@ class AzureBaseClass:
                 source[key] = value
         return source
 
-    def _loop_resources_dict(self, function: callable):
+    def _loop_resources_dict(self, function: Callable):
 
         """
         in the first iteration the resources_dict
