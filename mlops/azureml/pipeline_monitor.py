@@ -2,319 +2,87 @@
 from azureml.core import Workspace
 from azureml.core import Experiment
 from azureml.pipeline.core.run import PipelineRun
-import pandas as pd
-from typing import Generator
+from typing import Iterable
+from mlops_monitor_2.mlops_monitor.mlops.azureml.azure_resource import AzureWorkspaceClass
+from itertools import chain, takewhile
 from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
 
+class PipelineMonitor:
 
-class Pipeline_monitor:
-    """Classe utilizada para monitorar os status dos pipelines e dos steps."""
+    azure_resource_obj = AzureWorkspaceClass()
 
-    def __init__(self: "Pipeline_monitor", config_workspace: dict) -> None:
-        """__init__.
+    def __init__(self) -> None:
+        pass
 
-        args:
-            config_workspace: Dict contendo as chaves de acesso do workspace
-            config_workspace = {"subscription_id": "",
-                                "resource_group": "",
-                                "workspace_name": ""}
+    def init_azure_resource(self):
+        self.azure_resource_obj.initialize()
+        return self
+
+    def chained_get(self, d: dict, *args) -> dict:
+
         """
-        self.credential = config_workspace
-
-    def create_workspace(self: "Pipeline_monitor") -> None:
-        """Cria o workspace utilizado para a execução do código."""
-        self.ws = Workspace(subscription_id=self.credential['subscription_id'],
-                            resource_group=self.credential['resource_group'],
-                            workspace_name=self.credential['workspace_name'])
-
-    def get_experiment_list(self: "Pipeline_monitor") -> list:
-        """Extrai os experimentos do workspace.
-
-        Returns:
-            Retorna uma lista contendo os experimentos disponíveis no workspace
+        gets the chained value from a dictionary
+        if fails returns an empty dict
         """
-        experiments = Experiment.list(self.ws)
 
-        return experiments
-
-    def get_pipeline_list_generator(self: "Pipeline_monitor",
-                                    experimento: list) -> Generator:
-        """Cria um gerador que contém os pipelines.
-
-        Args:
-            experiments: Lista contendo experimentos disponíveis no workspace
-            position: Posição na lista, inteiro utilizado para varrer a lista
-
-        Returns:
-            Retorna uma generator contendo os pipelines de um dado experimento
-        """
-        name_pipeline = experimento.name
-        experiment = Experiment(workspace=self.ws, name=name_pipeline)
-        pipeline_list_generator = PipelineRun.list(experiment)
-
-        return pipeline_list_generator
-
-    def get_last_pipeline(self: "Pipeline_monitor",
-                          pipeline_list_generator: Generator) -> PipelineRun:
-        """Responsável por retornar a ocorrência mais recente no generator.
-
-        Args:
-            pipeline_list: generator contendo os pipelines de um experimento
-        Returns:
-            Retorna um azureml.pipeline.core.run.PipelineRun com dados
-            do mais recente pipeline do experimento escolhido
-        """
-        try:
-            last_pipeline = [pipeline_list_generator.__next__()]
-        except StopIteration:
-            last_pipeline = []
-            raise StopIteration("Confira se há execuções do pipeline no histórico.")
-            
-
-        return last_pipeline
-
-    def get_all_pipeline(self: "Pipeline_monitor",
-                         pipeline_list_generator: Generator) -> PipelineRun:
-        """Gera uma lista contendo todos os pipelines de um experiment."""
-        pipeline_list = (list(pipeline_list_generator))
-
-        return pipeline_list
-
-    def mesure_delta_time(self: "Pipeline_monitor",
-                          start: str,
-                          end: str) -> timedelta:
-        """Retorna o tempo de execução do pipeline."""
-        format = "%Y-%m-%dT%H:%M:%S.%fZ"
-        if (len(start) & len(end)) != None:
-            dt1 = datetime.strptime(start, format)
-            dt2 = datetime.strptime(end, format)
-            difference = dt2 - dt1
-            return difference.total_seconds()/60
+        if len(args) == 1:
+            return d.get(args[0])
         else:
-            return None
+            return self.chained_get(d.get(args[0], {}), *args[1:])
 
-    def get_pipeline_details(self: "Pipeline_monitor",
-                             last_pipeline: PipelineRun) -> dict:
-        """Responsável por extrair os detalhes do pipeline.
+    def recursive_dict(self, d: dict, until_k: str) -> Iterable[dict]:
 
-        Args:
-            last_pipeline: um azureml.pipeline.core.run.PipelineRun com dados
-            do mais recente pipeline do experimento escolhido
-        Returns:
-            Retorna um dict contendo as informações escohidas
         """
-        try:
-            pipe = last_pipeline.get_details()
-            pipe_details = {
-                'experiment_name': last_pipeline.experiment.name,
-                'display_name': last_pipeline.display_name,
-                'runId_pipeline': pipe.get('runId'),
-                'status': pipe.get('status'),
-                'TimeRunning_min': self.mesure_delta_time(
-                    pipe.get('startTimeUtc'), pipe.get('endTimeUtc')),
-                'startTimeUtc': pipe.get('startTimeUtc'),
-                'endTimeUtc': pipe.get('endTimeUtc'),
-                'dt_created_run': datetime.strptime(
-                    pipe.get('startTimeUtc'), "%Y-%m-%dT%H:%M:%S.%fZ").date(),
-                'url_run': last_pipeline.get_portal_url()
-            }
-        except AttributeError:
-            pipe_details = {}
-            raise AttributeError(
-                f"Houve um erro durante a captura dos detalhes dos pipelines." 
-                f"Favor validar na AzureML se as informações estão disponíveis."
-            )
-
-        return pipe_details
-
-    def iterate_pipelines(self: "Pipeline_monitor",
-                          pipeline_list: list) -> pd.DataFrame:
-        """Itera os pipelines de uma lista."""
-        pipelines_details = pd.DataFrame()
-        if len(pipeline_list) > 0:
-            for pipeline in pipeline_list:
-                pipeline_details = self.get_pipeline_details(pipeline)
-                pipeline_details_row = pd.DataFrame(pipeline_details,
-                                                    index=[0])
-                pipelines_details = pd.concat([pipelines_details,
-                                               pipeline_details_row])
-
-        pipelines_details = pipelines_details.reset_index(drop=True)
-
-        return pipelines_details
-
-    def get_steps(self: "Pipeline_monitor",
-                  pipelines: PipelineRun) -> list:
-        """Responsável por extrair os steps.
-
-        :param last_pipeline:
-        :type last_pipeline: dict
+        gets a specific key from
+        recursivelly walking though a
+        dictionary
+        if multiple are found, it'll return
+        all found matches
         """
-        step_list = []
-        try:
-            for pipeline in pipelines:
-                step_list += list(pipeline.get_steps())
-        except IndexError:
-            step_list = []
-            raise IndexError("Confira se há steps ex no pipeline.")
-        return step_list
 
-    def get_steps_details(self: "Pipeline_monitor",
-                          step: PipelineRun) -> dict:
-        """Responsável por extrair os detalhes do step.
+        for k, v in d.items():
+            if k == until_k:
+                yield from v
+            elif isinstance(v, dict):
+                yield from self.recursive_dict(v, until_k)
 
-        Args:
-            steps: child run de um pipeline
-        Returns:
-            dicionário contendo os detalhes de cada step
+    def _get_workspaces(self) -> Iterable[Workspace]:
+
         """
-        try:
-            step_dict = step.get_details()
-            step_details = {
-                'experiment_name': step.experiment.name,
-                'step_name': step_dict.get(
-                    'properties', {}).get('azureml.moduleName'),
-                'display_name': step.display_name,
-                'runId_step': step_dict.get('runId'),
-                'status': step_dict.get('status'),
-                'TimeRunning_min': self.mesure_delta_time(
-                    step_dict.get('startTimeUtc'),
-                    step_dict.get('endTimeUtc')),
-                'startTimeUtc': step_dict.get('startTimeUtc'),
-                'endTimeUtc': step_dict.get('endTimeUtc'),
-                'dt_created_run': datetime.strptime(
-                    step_dict.get('startTimeUtc'),
-                    "%Y-%m-%dT%H:%M:%S.%fZ").date(),
-                'url_run': step.get_portal_url(),
-                'user_logs/std_log.txt': step_dict.get(
-                    'logFiles', {}).get('user_logs/std_log.txt')
-            }
+        recursively gets the workspaces from the
+        dictionary of resources. It's only
+        necessary the workspaces objects to
+        extract the experiments and runs
+        """
 
-        except AttributeError:
-            step_details = {}
-            raise AttributeError(
-                f"Houve um erro durante a captura dos detalhes dos steps." 
-                f"Favor validar na AzureML se as informações estão disponíveis."
-            )
+        return self.recursive_dict(self.azure_resource_obj.resources_dict, 'workspaces')
 
-        return step_details
+    def _get_experiments_map(self) -> Iterable[list[Experiment]]:
 
-    def iterate_steps(self: "Pipeline_monitor",
-                      step_list: list) -> pd.DataFrame:
-        """Itera os steps de uma lista."""
-        steps_details = pd.DataFrame()
-        if len(step_list) > 0:
-            for step in range(len(step_list)):
-                step_details = self.get_steps_details(step_list[step])
-                step_details_row = pd.DataFrame(step_details, index=[0])
-                steps_details = pd.concat([steps_details, step_details_row])
+        """
+        gets the experiments from the workspaces
+        """
 
-        steps_details = steps_details.reset_index(drop=True)
+        return map(lambda workspace: Experiment.list(workspace), self._get_workspaces())
 
-        return steps_details
+    def _get_specific_experiment(self,
+                                 name: str) -> Iterable[Experiment]:
 
-    def year_month_func(self: "Pipeline_monitor", data: datetime) -> tuple:
-        """Retorna uma tupla com o ano e mês."""
-        return (data.year, data.month)
+        """
+        filters the experiments by name
+        """
 
-    def period_filter(self: "Pipeline_monitor",
-                            df: pd.DataFrame,
-                            tipo: str) -> pd.DataFrame:
-        """Filtra o dataframe de acordo com o período pré-selecionado."""
+        return filter(lambda experiment: experiment.name == name,
+                      chain.from_iterable(self._get_experiments_map()))
+
+    def _filter_by_days(self, runs: Iterable[PipelineRun], days: int) -> Iterable[PipelineRun]:
         today = datetime.now().date()
-        last_30d = today - relativedelta(days=30)
-        if tipo == 'last':
-            return df
+        cutoff = (today - timedelta(days=days)).strftime('%Y-%m-%d')
+        return takewhile(lambda run: run.get_details()['startTimeUtc'] > cutoff, runs)
 
-        elif tipo == 'day':
-            return df[df['dt_created_run'] == today]
+    def _get_runs(self, experiment: Experiment) -> Iterable[PipelineRun]:
+        return experiment.get_runs()
 
-        elif tipo == 'last_30d':
-            return df[df['dt_created_run'] >= last_30d]
+    def _get_pipe(self, name: str, days: int) -> Iterable[PipelineRun]:
+        return self._filter_by_days(self._get_runs(list(self._get_specific_experiment(name=name))[0]), days)
 
-        elif tipo == 'month':
-            df['year_month'] = df['dt_created_run'].apply(self.year_month_func)
-            return df[df['year_month'] == (today.year, today.month)]
-
-    def experiments_filter(self: "Pipeline_monitor",
-                           experimentos: list[str],
-                           experiments_ws: list[str]) -> list:
-        """Filtra os experimentos de acordo com a lista passada de input."""
-        if len(experimentos) == 0:
-            # Coleta os experimentos disponiveis no workspace
-            filtered_experiments = experiments_ws
-        else:
-            experiments_workspace_names = [[i, i.name] for i in experiments_ws]
-            filter_experiments = [i for i in experiments_workspace_names
-                                  if i[1] in experimentos]
-            filtered_experiments = [i[0] for i in filter_experiments]
-
-        return filtered_experiments
-
-    def run(self: "Pipeline_monitor",
-            tipo: str,
-            config_workspace: dict,
-            experimentos: list[str] = []) -> pd.DataFrame:
-        """Executa a classe Pipeline_monitor.
-
-        Returns:
-            Dois dataframes contendo os detahes dos pipeline e steps
-        """
-        # Executa a função
-        gs = Pipeline_monitor(config_workspace)
-
-        # Cria Workspace
-        gs.create_workspace()
-
-        # Filtra os experimentos passados como argumento, caso padrão:todos
-        experiments_ws = gs.get_experiment_list()
-        final_experiment_list = gs.experiments_filter(experimentos,
-                                                      experiments_ws)
-
-        # Itera os experimentos
-        output_pipeline = pd.DataFrame()
-        output_step = pd.DataFrame()
-
-        for exp in final_experiment_list:
-            # Cria gerador com os pipelines
-            pipeline_list_generator = gs.get_pipeline_list_generator(exp)
-
-            # Determina o tipo de rodagem
-            if tipo == 'last':
-                pipeline_list = gs.get_last_pipeline(pipeline_list_generator)
-                pipeline_details = gs.iterate_pipelines(pipeline_list)
-                step_lists = gs.get_steps(pipeline_list)
-                step_details = gs.iterate_steps(step_lists)
-
-                output_pipeline = pd.concat(
-                    [output_pipeline, gs.period_filter(pipeline_details,
-                                                       tipo)])
-                output_step = pd.concat([output_step, gs.period_filter(
-                    step_details, tipo)])
-
-            elif tipo == 'day':
-                pipeline_list = gs.get_all_pipeline(pipeline_list_generator)
-                pipeline_details = gs.iterate_pipelines(pipeline_list)
-
-                output_pipeline = pd.concat([output_pipeline,
-                                             gs.period_filter(
-                                                pipeline_details, tipo)])
-
-            elif tipo == 'last_30d':
-                pipeline_list = gs.get_all_pipeline(pipeline_list_generator)
-                pipeline_details = gs.iterate_pipelines(pipeline_list)
-
-                output_pipeline = pd.concat([output_pipeline,
-                                             gs.period_filter(
-                                                pipeline_details, tipo)])
-
-            elif tipo == 'month':
-                pipeline_list = gs.get_all_pipeline(pipeline_list_generator)
-                pipeline_details = gs.iterate_pipelines(pipeline_list)
-
-                output_pipeline = pd.concat([output_pipeline,
-                                             self.period_filter(
-                                                pipeline_details, tipo)])
-
-        return output_pipeline, output_step
