@@ -1,3 +1,4 @@
+from functools import partial
 from azureml.core import Run
 from typing import Generator, TypedDict, Iterable
 from azureml.core import Workspace, Experiment
@@ -20,7 +21,6 @@ class AzureBaseClass:
     general class for getting azure
     resources
     """
-
 
     _resource_dict: dict[str, ResourceDict] = {}
 
@@ -52,8 +52,18 @@ class AzureBaseClass:
         return source
 
     def _loop_resources_dict(self, function: callable):
-        for k, v in self.resources_dict.items():
-            self.resources_dict = function(k, v)
+
+        """
+        in the first iteration the resources_dict
+        will be empty, so it will be filled
+        with the first function call
+        """
+
+        if self.resources_dict == {}:
+            self.resources_dict = function()
+        else:
+            for k, v in self.resources_dict.items():
+                self.resources_dict = function(k, v)
         return self
 
 
@@ -71,6 +81,10 @@ class AzureBaseClass:
         azure interactive login authentication
         if its running locally it will ask
         for authentication
+        theres no way to return anything to
+        if user is not logged in but its
+        possible to always run this function
+        and it will check if the user is logged in
         """
 
         InteractiveLoginAuthentication()
@@ -119,7 +133,7 @@ class AzureIDClass(AzureBaseClass):
         and repeat the dict for each subscription
         """
 
-        return map(lambda x,y: {x['id']: y},
+        return map(lambda cached_subscriptions, default_dict_name: {cached_subscriptions['id']: default_dict_name},
                    self.profile.load_cached_subscriptions(),
                    repeat({'name': [], 'workspaces': []}))
 
@@ -134,6 +148,11 @@ class AzureIDClass(AzureBaseClass):
         return self._generate_dict_from_iterable(self._map_generate_resources())
 
     def _generate_ids(self):
+
+        """
+        generate ids for the resources
+        """
+
         return self._loop_resources_dict(self._generate_ids_dict)
 
 class AzureResourceGroupClass(AzureIDClass):
@@ -166,7 +185,7 @@ class AzureResourceGroupClass(AzureIDClass):
         return self._list_resource_groups(self._resource_groups(id))
 
     def _map_resource_group_names(self, id: str) -> Generator[str, None, None]:
-        return map(lambda x: x.name, self._get_resource_group_names(id))
+        return map(lambda resource_group: resource_group.name, self._get_resource_group_names(id))
 
     def _generate_resource_group_names_dict(self,
                                             id: str,
@@ -197,6 +216,34 @@ class AzureWorkspaceClass(AzureResourceGroupClass):
         self._get_woskspace_name_dict()
         return self
 
+    def _get_name_from_workspace(self, workspace: Iterable[Workspace]) -> str:
+        return map(lambda workspace: workspace.name, workspace)
+
+    def _wrapper_create_workspace_object(self,
+                                        id: str,
+                                        resource_group_name: str,
+                                        workspace: Iterable[Workspace]) -> Workspace:
+
+        return  map(partial(self._get_workplace_object, id, resource_group_name),
+                                           self._get_name_from_workspace(workspace))
+
+    def _get_workplace_object(self, id: str,
+                              resource_group_name: str,
+                              workspace_name: str):
+
+        """
+        while MLClient returns a workspace object
+        it can not be initialized with the classes
+        that are used to find the experiments, because
+        the mlclient lacks the credentials method in it
+        (service_context)
+        """
+
+        return Workspace(subscription_id=id,
+                         resource_group=resource_group_name,
+                         workspace_name=workspace_name)
+
+
     def _get_ml_client_workspace_iterable(self,
                                       id: str,
                                       resource_group_name: str) -> Iterable[Workspace]:
@@ -206,11 +253,14 @@ class AzureWorkspaceClass(AzureResourceGroupClass):
         the workspaces names from the ml_client
         """
 
-        ml_client = MLClient(AzureCliCredential(),
+        ml_client = MLClient(credential=AzureCliCredential(),
                         subscription_id=id,
                         resource_group_name=resource_group_name)
 
-        return ml_client.workspaces.list()
+        return self._wrapper_create_workspace_object(id,
+                                                     resource_group_name,
+                                                     ml_client.workspaces.list())
+
 
     def _get_ml_client_workspace(self,
                                  id: str,
@@ -232,7 +282,9 @@ class AzureWorkspaceClass(AzureResourceGroupClass):
         return list(chain.from_iterable(
             map(self._get_ml_client_workspace_iterable, repeat(id), list_resource_group_name)))
 
-    def _generate_ml_client_workspace_dict(self, id: str, resourcedict: ResourceDict) -> ResourceDict:
+    def _generate_ml_client_workspace_dict(self,
+                                           id: str,
+                                           resourcedict: ResourceDict) -> ResourceDict:
 
         """
         generates the ml_client workspace list
