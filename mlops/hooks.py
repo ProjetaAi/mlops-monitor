@@ -6,8 +6,8 @@ class Hooks:
     def generate_payload(title: str, message: str, severity: str) -> dict:
         severity_colors = {
             "high": "FF0000",   # Red color
-            "medium": "FFFF00",  # Yellow color
-            "low": "00FF00"      # Green color
+            "medium": "FFA500",  # Orange color
+            "low": "FFFF00"      # Yellow color
         }
 
         color = severity_colors.get(severity, "FFFFFF")  # Default to white
