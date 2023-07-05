@@ -8,7 +8,6 @@ from azure.cli.core._profile import Profile
 from azure.mgmt.resource import ResourceManagementClient
 from azureml.core.authentication import InteractiveLoginAuthentication
 from azure.mgmt.resource.resources.v2022_09_01.models import ResourceGroup
-
 from itertools import repeat, chain
 
 class ResourceDict(TypedDict):
@@ -103,7 +102,7 @@ class AzureBaseClass:
         if true = running on an azure cluster
         if false = not running on azure cluster
         """
-        return self._check_if_isinstance_experiment(Run.get_context())
+        return self._check_if_isinstance_experiment(Run.get_context())  # type: ignore
 
 class AzureIDClass(AzureBaseClass):
 
@@ -173,7 +172,7 @@ class AzureResourceGroupClass(AzureIDClass):
         generates resource groups list
         """
 
-        return resource.resource_groups.list()
+        return resource.resource_groups.list()  # type: ignore
 
     def _get_resource_group_names(self, id: str) -> Iterable[ResourceGroup]:
 
@@ -184,8 +183,9 @@ class AzureResourceGroupClass(AzureIDClass):
 
         return self._list_resource_groups(self._resource_groups(id))
 
-    def _map_resource_group_names(self, id: str) -> Generator[str, None, None]:
-        return map(lambda resource_group: resource_group.name, self._get_resource_group_names(id))
+    def _map_resource_group_names(self, id: str) -> Iterable[str]:
+        return map(lambda resource_group: resource_group.name,
+                   self._get_resource_group_names(id)) # type: ignore
 
     def _generate_resource_group_names_dict(self,
                                             id: str,
@@ -217,12 +217,12 @@ class AzureWorkspaceClass(AzureResourceGroupClass):
         return self
 
     def _get_name_from_workspace(self, workspace: Iterable[Workspace]) -> str:
-        return map(lambda workspace: workspace.name, workspace)
+        return map(lambda workspace: workspace.name, workspace) # type: ignore
 
     def _wrapper_create_workspace_object(self,
                                         id: str,
                                         resource_group_name: str,
-                                        workspace: Iterable[Workspace]) -> Workspace:
+                                        workspace: Iterable[Workspace]) -> Iterable[Workspace]:
 
         return  map(partial(self._get_workplace_object, id, resource_group_name),
                                            self._get_name_from_workspace(workspace))
@@ -259,7 +259,7 @@ class AzureWorkspaceClass(AzureResourceGroupClass):
 
         return self._wrapper_create_workspace_object(id,
                                                      resource_group_name,
-                                                     ml_client.workspaces.list())
+                                                     ml_client.workspaces.list()) # type: ignore
 
 
     def _get_ml_client_workspace(self,
@@ -291,7 +291,7 @@ class AzureWorkspaceClass(AzureResourceGroupClass):
         """
 
         return {id:
-            {'workspaces':self._get_ml_client_workspace_map(id, resourcedict['name'])}}
+            {'workspaces':self._get_ml_client_workspace_map(id, resourcedict['name'])}} # type: ignore
 
     def _get_woskspace_name_dict(self):
 
