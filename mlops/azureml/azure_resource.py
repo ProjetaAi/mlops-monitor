@@ -11,6 +11,11 @@ from azure.mgmt.resource.resources.v2022_09_01.models import ResourceGroup
 from itertools import repeat, chain
 
 class ResourceDict(TypedDict):
+
+    """
+    TypedDict for the resources_dict
+    """
+
     name: list[str]
     workspaces: list[tuple[str, Workspace]]
 
