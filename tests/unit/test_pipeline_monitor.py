@@ -94,10 +94,10 @@ class Test_PipelineMonitor(unittest.TestCase):
         self.assertTrue(all(isinstance(i, MockRun) for i in result))
 
         # check if it can filter the runs
-        result = list(self.class_test.get_pipe('fake_run_fake_id_1', 1))[0]
+        result = list(self.class_test._get_pipe('fake_run_fake_id_1', 1))[0]
         self.assertEqual(result.name, 'fake_run_fake_id_1')
 
         # check if it can get the steps from the run
-        result = list(self.class_test.get_pipe('fake_run_fake_id_1', 1))
-        result_details = self.class_test._get_steps(result) # type: ignore
+        result = list(self.class_test._get_pipe('fake_run_fake_id_1', 1))
+        result_details = self.class_test._get_details_from_run(result) # type: ignore
         self.assertIsInstance(result_details, Iterable)
