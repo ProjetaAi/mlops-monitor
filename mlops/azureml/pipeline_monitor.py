@@ -10,10 +10,10 @@ import time
 
 def timer_decorator(func):
     def wrapper(*args, **kwargs):
-        start_time = time.perf_counter()  # start timer
-        result = func(*args, **kwargs)    # execute the function
-        end_time = time.perf_counter()    # stop timer
-        run_time = end_time - start_time  # calculate run time
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        run_time = end_time - start_time
         print(f"Function {func.__name__!r} executed in {run_time:.4f} seconds")
         return result
     return wrapper
