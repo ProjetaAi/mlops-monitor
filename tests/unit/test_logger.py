@@ -2,6 +2,7 @@ from unittest.mock import Mock
 from mlops.logger import Lodge
 
 def test_lodge():
+    
     # Create a mock for the Logging class
     logging_mock = Mock()
 

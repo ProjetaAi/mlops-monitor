@@ -32,7 +32,7 @@ class Hooks:
         return os.getenv('WEBHOOK_URL')
     
     @staticmethod
-    def check_dict(alert_dict: dict) -> str:
+    def check_dict(alert_dict: dict) -> None:
         # Check input.
         required_fields = ["title", "message", "severity"]
         missing_fields = [field for field in required_fields if field not in alert_dict]
@@ -43,6 +43,7 @@ class Hooks:
 
     @staticmethod
     def send_teams_alert(alert_dict: dict) -> None: 
+
         #Check dictionary fields.
         try:
             Hooks.check_dict(alert_dict)
@@ -64,4 +65,3 @@ class Hooks:
 
         # Send alert
         teams.send()
-        
