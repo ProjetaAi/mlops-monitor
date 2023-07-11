@@ -45,12 +45,9 @@ class Hooks:
     def send_teams_alert(alert_dict: dict) -> None: 
 
         #Check dictionary fields.
-        try:
-            Hooks.check_dict(alert_dict)
-        except ValueError as e:
-            logging.error(e)
-            raise ValueError(e)
-        
+    
+        Hooks.check_dict(alert_dict)
+    
         # Establishes the connection with the Teams webhook
         teams = pymsteams.connectorcard(Hooks.get_webhook())
 
