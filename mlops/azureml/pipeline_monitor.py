@@ -187,7 +187,7 @@ class PipelineFormatter(PipelineMonitor):
 
 
     @timer_decorator
-    def _run_azure_generators(self, name, days) -> dict:
+    def _run_azure_generators(self, name, days) -> list[dict]:
         return list(self._filter_run_details(self.get_pipe_with_details(name, days)))
 
     def get_pipe(self, name, days) -> dict:
@@ -196,6 +196,7 @@ class PipelineFormatter(PipelineMonitor):
         return {name: self._run_azure_generators(name, days)}
 
     @timer_decorator
-    def _run_azure_generators_thread(self, runs: Iterable[PipelineRun]) -> list[dict]:
+    def __run_azure_generators_thread(self, runs: Iterable[PipelineRun]) -> list[dict]:
+        # this is only a test and not meant to be used for now
         with ThreadPoolExecutor(max_workers=4) as executor:
-            return list(executor.map(lambda run: self._filter_run_details(run.get_details()), runs))
+            return list(executor.map(lambda run: self._filter_run_details(run.get_details()), runs)) # type: ignore

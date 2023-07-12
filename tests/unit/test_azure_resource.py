@@ -42,7 +42,6 @@ class Test_AzureVariables(unittest.TestCase):
                                      mock_profile,
                                      mock_get_resource_group_names,
                                      mock_get_ml_client_workspace_iterable):
-
         self.class_test._generate_ids()
 
         self.assertEqual(self.class_test.resources_dict, {
@@ -51,9 +50,11 @@ class Test_AzureVariables(unittest.TestCase):
         })
 
         with self.assertRaises(TypeError):
-            self.class_test.resources_dict = 1
+            # this meant to fail
+            self.class_test.resources_dict = 1  # type: ignore
         with self.assertRaises(TypeError):
-            self.class_test.resources_dict = {'fake_id_1': 1}
+            # this meant to fail that's why the type: ignore
+            self.class_test.resources_dict = {'fake_id_1': 1} # type: ignore
 
         self.class_test._generate_resource_group_names()
 

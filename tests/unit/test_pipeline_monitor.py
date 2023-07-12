@@ -1,6 +1,6 @@
 from typing import Iterable
 import unittest
-from mlops.azureml.pipeline_monitor import PipelineMonitor
+from mlops.azureml.pipeline_monitor import PipelineMonitor, PipelineFormatter
 from unittest.mock import patch, PropertyMock, MagicMock
 from unittest import mock
 import datetime
