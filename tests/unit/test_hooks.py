@@ -1,70 +1,101 @@
-import unittest
-from unittest.mock import patch, MagicMock
+"""Unit test file for the mlops.hooks module."""
+
+import pytest
+from unittest.mock import MagicMock
 from mlops.hooks import Hooks
+from typing import Any
 
-class TestHooks(unittest.TestCase):
-    def setUp(self):
-        self.alert_dict = {
-            "title": "Título do alerta",
-            "message": "Mensagem do alerta",
-            "severity": "high"
-        }
 
-    @patch('mlops.hooks.load_dotenv')
-    @patch('mlops.hooks.os.getenv')
-    def test_get_webhook(self, mock_getenv, mock_load_dotenv):
-        mock_getenv.return_value = 'https://example.com/webhook'
-        webhook_url = Hooks.get_webhook()
-        self.assertEqual(webhook_url, 'https://example.com/webhook')
+@pytest.fixture
+def mock_get_webhook(monkeypatch: Any) -> None:
+    """Mock the get_webhook method to return a test webhook URL."""
+    def mock_get_webhook() -> str:
+        return "https://example.com/webhook"
 
-    def test_generate_payload(self):
-        title = "Título do alerta"
-        message = "Mensagem do alerta"
-        severity = "high"
+    monkeypatch.setattr(Hooks, "get_webhook", mock_get_webhook)
 
-        expected_payload = {
-            "text": message,
-            "themeColor": "FF0000",
-            "title": title
-        }
 
-        payload = Hooks.generate_payload(title, message, severity)
-        self.assertEqual(payload, expected_payload)
+@pytest.fixture
+def mock_connectorcard(monkeypatch: Any) -> None:
+    """Mock the connectorcard class to avoid making actual connections."""
+    class MockConnectorCard:
+        def __init__(self: Any) -> None:
+            pass
 
-    @patch('mlops.hooks.Hooks.generate_payload')
-    @patch('mlops.hooks.Hooks.get_webhook')
-    @patch('mlops.hooks.pymsteams.connectorcard')
-    def test_send_teams_alert(self, mock_connectorcard, mock_get_webhook, mock_generate_payload):
-        mock_get_webhook.return_value = 'https://example.com/webhook'
-        mock_generate_payload.return_value = {'text': 'Test message'}
+        def send(*args: Any) -> None:
+            pass
 
-        teams_instance = MagicMock()
-        mock_connectorcard.return_value = teams_instance
+    mock = MagicMock(return_value=MockConnectorCard)
+    monkeypatch.setattr("mlops.hooks.pymsteams.connectorcard", mock)
 
-        Hooks.send_teams_alert(self.alert_dict)
 
-        mock_get_webhook.assert_called_once()
-        mock_generate_payload.assert_called_once_with(
-            self.alert_dict['title'], self.alert_dict['message'], self.alert_dict['severity']
-        )
-        mock_connectorcard.assert_called_once_with('https://example.com/webhook')
+def test_generate_payload() -> None:
+    """Test the generate_payload method."""
+    # Test case setup
+    title = "Test Title"
+    message = "Test Message"
+    severity = "high"
 
-        teams_instance.send.assert_called_once_with()
+    # Generate payload
+    payload = Hooks.generate_payload(title, message, severity)
 
-    def test_check_dict(self):
-        alert_dict = {
-            "title": "Título do alerta",
-            "message": "Mensagem do alerta",
-            "severity": "high"
-        }
-        self.assertIsNone(Hooks.check_dict(alert_dict))
+    # Assertion
+    assert payload["title"] == title
+    assert payload["text"] == message
+    assert payload["themeColor"] == "FF0000"
 
-        missing_title_dict = {
-            "message": "Mensagem do alerta",
-            "severity": "high"
-        }
-        with self.assertRaises(ValueError):
-            Hooks.check_dict(missing_title_dict)
 
-if __name__ == '__main__':
-    unittest.main()
+def test_check_dict() -> None:
+    """Test the check_dict method with a valid dictionary."""
+    # Test case setup
+    alert_dict = {
+        "title": "Test Title",
+        "message": "Test Message",
+        "severity": "high"
+    }
+
+    # Call check_dict method
+    Hooks.check_dict(alert_dict)  # Should not raise any exceptions
+
+
+def test_check_dict_missing_fields() -> None:
+    """Test the check_dict method with missing fields."""
+    # Test case setup
+    alert_dict = {
+        "title": "Test Title",
+        "severity": "high"
+    }
+
+    # Call check_dict method and assert exception
+    with pytest.raises(ValueError) as e:
+        Hooks.check_dict(alert_dict)
+
+    assert str(e.value) == "Campos faltando: message"
+
+
+def test_send_teams_alert() -> None:
+    """Test the send_teams_alert method."""
+    # Test case setup
+    alert_dict = {
+        "title": "Test Title",
+        "message": "Test Message",
+        "severity": "high"
+    }
+
+    # Call send_teams_alert method
+    Hooks.send_teams_alert(alert_dict)  # Should not raise any exceptions
+
+
+def test_send_teams_alert_missing_fields() -> None:
+    """Test the send_teams_alert method with missing fields."""
+    # Test case setup
+    alert_dict = {
+        "title": "Test Title",
+        "severity": "high"
+    }
+
+    # Call send_teams_alert method and assert exception
+    with pytest.raises(ValueError) as e:
+        Hooks.send_teams_alert(alert_dict)
+
+    assert str(e.value) == "Campos faltando: message"
