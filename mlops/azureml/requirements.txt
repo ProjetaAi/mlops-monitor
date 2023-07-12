@@ -1,5 +1,5 @@
-azureml-core
-azureml-pipeline
-azure-ai-ml
-azure-cli
-pymsteams
+azureml-core==1.52.0
+azureml-pipeline==1.52.0
+azure-ai-ml==1.8.0
+azure-cli==2.49.0
+pymsteams==0.2.2
