@@ -1,0 +1,6 @@
+repos:
+  - repo: https://github.com/pycqa/pydocstyle
+    rev: '6.1.1'
+    hooks:
+      - id: pydocstyle
+        args: ["--ignore=D1,D2,D3,D4,DAR"]
