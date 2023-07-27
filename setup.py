@@ -5,7 +5,15 @@ VERSION = '1.0.0'
 datadog = ['datadog-api-client==2.10.0']
 logger  = ['lodge==0.1.0']
 
-all = (datadog + logger)
+azure_monitor_projetaai = ['projetaai-azure',
+                           'pymsteams==0.2.2']
+
+azure_monitor = ['azureml-core==1.45.0',
+                 'azureml-pipeline==1.45.0',
+                 'azure-ai-ml==0.1.0b4',
+                 'azure-cli==2.36.0',
+                 'pymsteams==0.2.2']
+all = (datadog + logger + azure_monitor_projetaai)
 
 setup(
     name='mlops-monitor',
@@ -22,6 +30,8 @@ setup(
     extras_require={
         'all' : all,
         'datadog' : datadog,
-        'logger'  : logger
+        'logger'  : logger,
+        'azure_monitor': azure_monitor,
+        'azure_monitor_projetaai': azure_monitor_projetaai
     }
 )

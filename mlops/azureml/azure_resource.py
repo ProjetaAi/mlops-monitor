@@ -7,7 +7,7 @@ from azure.identity import AzureCliCredential
 from azure.cli.core._profile import Profile
 from azure.mgmt.resource import ResourceManagementClient
 from azureml.core.authentication import InteractiveLoginAuthentication
-from azure.mgmt.resource.resources.v2022_09_01.models import ResourceGroup
+from azure.mgmt.resource.resources.v2021_04_01.models import ResourceGroup
 from itertools import repeat, chain
 
 class ResourceDict(TypedDict):
