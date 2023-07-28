@@ -1,7 +1,7 @@
 """Bibliotecas utilizadas."""
 from azureml.core import Run, Workspace, Experiment
 from azureml.pipeline.core.run import PipelineRun
-from typing import Generator, Iterable, Iterator
+from typing import Generator, Iterable
 from mlops.azureml.azure_resource import AzureWorkspaceClass
 from itertools import chain, takewhile
 from datetime import datetime, timedelta
@@ -60,14 +60,14 @@ class PipelineMonitor:
             elif isinstance(v, dict):
                 yield from self.recursive_dict(v, until_k)
 
-    def get_cutoff(self, days: int) -> str:
+    def get_cutoff(self, hours: int) -> str:
 
         """
         gets the cutoff date normalized
         """
 
         today = datetime.now().date()
-        cutoff = (today - timedelta(days=days)).strftime('%Y-%m-%d')
+        cutoff = (today - timedelta(hours=hours)).strftime('%Y-%m-%d')
         return cutoff
 
     def _get_workspaces(self) -> Iterable[Workspace]:
@@ -98,17 +98,17 @@ class PipelineMonitor:
 
         return filter(lambda experiment: experiment.name == name, self._get_experiments_map())
 
-    def _filter_by_days(self, runs: Iterable[Run], days: int) -> Iterable[Run]:
+    def _filter_by_time(self, runs: Iterable[Run],
+                        hours: int) -> Iterable[Run]:
 
         """
         given the Runs object, filter by
-        the number of days we want to read
+        the number of hours we want to read
         of history
         """
 
-        cutoff = self.get_cutoff(days)
-        return takewhile(lambda run: run.get_details()['startTimeUtc'] > cutoff, runs)
-
+        cutoff = self.get_cutoff(hours)
+        return takewhile(lambda run: run.get_details().get('startTimeUtc', cutoff) > cutoff, runs)
     def _wrapper_experiments_runs(self) -> Iterable[Run]:
 
         """
@@ -131,24 +131,39 @@ class PipelineMonitor:
     def _get_details_from_run(self, run: Iterable[Run]) -> Iterable[dict]:
         return map(lambda run: run.get_details(), run)
 
-    def _get_pipe(self, name: str, days: int) -> Iterable[Run]:
-        return self._filter_by_days(self._get_runs_from_filter(self._get_specific_experiment(name)), # type: ignore
-                                    days)
+    def _get_pipe(self, name: str, hours: int) -> Iterable[Run]:
+        return self._filter_by_time(self._get_runs_from_filter(self._get_specific_experiment(name)), # type: ignore
+                                    hours)
 
-    def get_pipe_with_details(self, name: str, days: int) -> Iterable[dict]:
+    def get_pipe_with_details(self, name: str, hours: int) -> Iterable[dict]:
 
         """
         generate the pipe details
         this takes a long time to run
         """
 
-        return self._wrapper_get_details_and_step(self._get_pipe(name, days))
+        return self._wrapper_get_details_and_step(self._get_pipe(name, hours))
 
     def _generate_steps(self, experiment: Experiment) -> Generator[Run, None, None]:
         return PipelineRun.list(experiment)
 
     def _wrapper_get_details_and_step(self, experiments: Iterable[Run]):
         return self._get_details_from_run(experiments)
+
+    def _filter_workspaces(self, workspace_name: str) -> Iterable[Experiment]:
+        return filter(lambda experiment: experiment.workspace.name == workspace_name,
+                      self._get_experiments_map())
+
+    def _get_from_workspace(self, workspace_name: str) -> Iterable[Experiment]:
+        return self._filter_workspaces(workspace_name)
+
+    def _getting_runs_from_workspace(self, workspace_name: str) -> Iterable[Run]:
+        return map(lambda experiment: (experiment.name, self._get_runs(experiment)),
+                   self._get_from_workspace(workspace_name))
+
+    def _get_last_from_workspace(self, workspace_name: str, time: dict) -> Iterable[tuple[str, Run]]:
+        return map(lambda run: (run[0], self._filter_by_time(run[1], time)),
+                   self._getting_runs_from_workspace(workspace_name))
 
 class PipelineFormatter(PipelineMonitor):
 
@@ -187,13 +202,31 @@ class PipelineFormatter(PipelineMonitor):
 
 
     @timer_decorator
-    def _run_azure_generators(self, name, days) -> list[dict]:
-        return list(self._filter_run_details(self.get_pipe_with_details(name, days)))
+    def _run_azure_generators(self, name, hours) -> list[dict]:
+        return list(self._filter_run_details(self.get_pipe_with_details(name, hours)))
 
-    def get_pipe(self, name, days) -> dict:
+    def _run_generator(self, run):
+        return list(self._get_details_from_run(run))
+
+    def get_pipe(self, name, hours) -> dict:
         self.init_azure_resource()
         self.init_get_experiments_map()
-        return {name: self._run_azure_generators(name, days)}
+        return {name: self._run_azure_generators(name, hours)}
+
+    # def get_pipe_by_workspace(self, workspace, days):
+    #     return map(lambda x: self._run_generator(x),
+    #                self._get_last_from_workspace(workspace,
+    #                                              days))
+
+    def get_pipe_by_workspace(self, workspace, hours):
+        return {name: runs for name, runs in self._get_last_from_workspace(workspace, hours)}
+        capeta = {}
+        for en, (name, runs) in enumerate(self._get_last_from_workspace(workspace, hours)):
+            capeta.update({name: self._filter_run_details(self._run_generator(runs))})
+            if en != 2:
+                continue
+            return capeta
+        return #{name: self._run_generator(runs) for name, runs in self._get_last_from_workspace(workspace, days)}
 
     @timer_decorator
     def __run_azure_generators_thread(self, runs: Iterable[PipelineRun]) -> list[dict]:
