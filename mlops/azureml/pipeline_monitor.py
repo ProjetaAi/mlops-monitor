@@ -66,9 +66,9 @@ class PipelineMonitor:
         gets the cutoff date normalized
         """
 
-        today = datetime.now().date()
-        cutoff = (today - timedelta(hours=hours)).strftime('%Y-%m-%d')
-        return cutoff
+        today = datetime.now()
+        cutoff = (today - timedelta(hours=hours))
+        return cutoff.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def _get_workspaces(self) -> Iterable[Workspace]:
 
@@ -213,20 +213,8 @@ class PipelineFormatter(PipelineMonitor):
         self.init_get_experiments_map()
         return {name: self._run_azure_generators(name, hours)}
 
-    # def get_pipe_by_workspace(self, workspace, days):
-    #     return map(lambda x: self._run_generator(x),
-    #                self._get_last_from_workspace(workspace,
-    #                                              days))
-
     def get_pipe_by_workspace(self, workspace, hours):
         return {name: self._filter_run_details(self._run_generator(runs)) for name, runs in self._get_last_from_workspace(workspace, hours)}
-        capeta = {}
-        for en, (name, runs) in enumerate(self._get_last_from_workspace(workspace, hours)):
-            capeta.update({name: self._filter_run_details(self._run_generator(runs))})
-            if en != 2:
-                continue
-            return capeta
-        return #{name: self._run_generator(runs) for name, runs in self._get_last_from_workspace(workspace, days)}
 
     @timer_decorator
     def __run_azure_generators_thread(self, runs: Iterable[PipelineRun]) -> list[dict]:
