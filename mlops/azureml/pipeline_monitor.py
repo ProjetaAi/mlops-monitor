@@ -219,7 +219,7 @@ class PipelineFormatter(PipelineMonitor):
     #                                              days))
 
     def get_pipe_by_workspace(self, workspace, hours):
-        return {name: runs for name, runs in self._get_last_from_workspace(workspace, hours)}
+        return {name: self._filter_run_details(self._run_generator(runs)) for name, runs in self._get_last_from_workspace(workspace, hours)}
         capeta = {}
         for en, (name, runs) in enumerate(self._get_last_from_workspace(workspace, hours)):
             capeta.update({name: self._filter_run_details(self._run_generator(runs))})
