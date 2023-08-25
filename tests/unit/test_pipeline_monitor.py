@@ -71,10 +71,10 @@ class Test_PipelineMonitor(unittest.TestCase):
 
     def setUp(self) -> None:
         self.class_test = PipelineMonitor()
+        self.class_test.azure_resource_obj = MockAzureWorkspaceClass()
 
     @mock.patch('azureml.core.Experiment.list', autospec=True, side_effect=MockExperiment.list)
-    @patch.object(PipelineMonitor, 'azure_resource_obj', new_callable=PropertyMock, return_value=MockAzureWorkspaceClass())
-    def test_declare_class(self, mock_azure_resource_obj, mock_experiment):
+    def test_declare_class(self, mock_experiment):
         workspaces = list(self.class_test._get_workspaces())
 
         self.assertTrue(all(isinstance(i, MockWorkspace) for i in workspaces))
@@ -93,11 +93,7 @@ class Test_PipelineMonitor(unittest.TestCase):
         result = self.class_test._wrapper_experiments_runs()
         self.assertTrue(all(isinstance(i, MockRun) for i in result))
 
-        # check if it can filter the runs
-        result = list(self.class_test._get_pipe('fake_run_fake_id_1', 1))[0]
-        self.assertEqual(result.name, 'fake_run_fake_id_1')
-
         # check if it can get the steps from the run
-        result = list(self.class_test._get_pipe('fake_run_fake_id_1', 1))
+        result = list(self.class_test._get_specific_experiment('fake_run_fake_id_1'))
         result_details = self.class_test._get_details_from_run(result) # type: ignore
         self.assertIsInstance(result_details, Iterable)

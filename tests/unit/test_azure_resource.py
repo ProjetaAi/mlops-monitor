@@ -21,6 +21,7 @@ def side_effect_get_resource_group_names(id):
 class MockWorkspace:
     def __init__(self, id, resource_group):
         self.id = id
+        self._workspace_id = id
         self.resource_group = resource_group
         pass
 
@@ -66,6 +67,11 @@ class Test_AzureVariables(unittest.TestCase):
         self.assertEqual(self.class_test.resources_dict, {'fake_id_1': {'name': ['fake_resource_group_from_fake_id_1'], 'workspaces': [MockWorkspace]},
                                                           'fake_id_2': {'name': ['fake_resource_group_from_fake_id_2'], 'workspaces': [MockWorkspace]}})
 
+        # case when ws are already declared
+        ws = MockWorkspace(id='test', resource_group=None)
+        self.ws_local = AzureWorkspaceClass()
+        self.ws_local.initialize(ws = [ws])
+        self.assertIsInstance(self.ws_local.resources_dict['test']['workspaces'][0], MockWorkspace)
 
 if __name__ == '__main__':
     unittest.main()

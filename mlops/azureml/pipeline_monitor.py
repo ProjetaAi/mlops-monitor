@@ -21,13 +21,16 @@ def timer_decorator(func):
 
 class PipelineMonitor:
 
-    azure_resource_obj = AzureWorkspaceClass()
-
     def __init__(self) -> None:
+        self.azure_resource_obj = None
         pass
 
-    def init_azure_resource(self):
-        self.azure_resource_obj.initialize()
+    def init_azure_resource(self,
+                            ws: Iterable[Workspace] = None):
+
+        self.azure_resource_obj = AzureWorkspaceClass()
+        self.azure_resource_obj.initialize(ws)
+
         return self
 
     def chained_get(self, d: dict, *args) -> dict:

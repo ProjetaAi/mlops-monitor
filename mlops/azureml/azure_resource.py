@@ -25,8 +25,10 @@ class AzureBaseClass:
     general class for getting azure
     resources
     """
-
-    _resource_dict: dict[str, ResourceDict] = {}
+    
+    def __init__(self) -> None:
+        self._resource_dict: dict[str, ResourceDict] = {}
+        pass
 
     @property
     def resources_dict(self) -> dict[str, ResourceDict]:
@@ -216,9 +218,14 @@ class AzureWorkspaceClass(AzureResourceGroupClass):
     generate the workspaces names
     """
 
-    def initialize(self):
-        super().initialize()
-        self._get_woskspace_name_dict()
+    def initialize(self,
+                   ws: Iterable[Workspace] = None):
+        if ws is None:
+            super().initialize()
+            self._get_woskspace_name_dict()
+        else:
+            self.ws = ws
+            self._generate_ws()
         return self
 
     def _get_name_from_workspace(self, workspace: Iterable[Workspace]) -> str:
@@ -269,7 +276,7 @@ class AzureWorkspaceClass(AzureResourceGroupClass):
 
     def _get_ml_client_workspace(self,
                                  id: str,
-                                 resource_group_name: str):
+                                 resource_group_name: str) -> Iterable[Workspace]:
         """
         returns the workspace object from the iterable
         """
@@ -305,3 +312,18 @@ class AzureWorkspaceClass(AzureResourceGroupClass):
         """
 
         return self._loop_resources_dict(self._generate_ml_client_workspace_dict)
+
+    def _generate_ws(self):
+        """
+        in case the argument "ws" isn't None, this function
+        will generate the dict with the workspace necessaries to run with the
+        "PipelineFormatter" and "PipelineMonitor". This is the function that will run
+        when working in a azure_ml compute_instance.
+        """
+
+        return self._loop_resources_dict(self._generate_dict_given_ws)
+
+    def _generate_dict_given_ws(self):
+        return self._generate_dict_from_iterable(
+            map(lambda workspace: {workspace._workspace_id:
+                {'workspaces': [workspace]}}, self.ws))
