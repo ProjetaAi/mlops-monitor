@@ -173,9 +173,9 @@ class PipelineFormatter(PipelineMonitor):
     _check_if_init = False
     _check_if_init_get_experiments = False
 
-    def init_azure_resource(self):
+    def init_azure_resource(self, ws: Iterable[Workspace]=None):
         if not self._check_if_init:
-            super().init_azure_resource()
+            super().init_azure_resource(ws=ws)
             self._check_if_init = True
         return
 
