@@ -118,9 +118,9 @@ client_secret = os.environ['password']
 Passe as variáveis de ambiente a função ServicePrincipalAuthentication:
 
 ``` python
-    auth = ServicePrincipalAuthentication(tenant_id=tenant_id,
-                                          service_principal_id=client_id,
-                                          service_principal_password=client_secret)
+auth = ServicePrincipalAuthentication(tenant_id=tenant_id,
+                                      service_principal_id=client_id,
+                                      service_principal_password=client_secret)
 ```
 Defina o Workspace que deseja monitorar:
 ``` python
