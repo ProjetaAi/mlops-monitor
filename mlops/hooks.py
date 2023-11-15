@@ -17,29 +17,61 @@ class Hooks:
     """
 
     @staticmethod
-    def generate_payload(title: str, message: str, severity: str) -> dict:
+    def generate_payload(title: str, message: str, mentioned_person: str, mentioned_person_id: str) -> dict:
         """Generate the payload for a Teams alert.
 
         Args:
             title (str): The title of the alert.
             message (str): The message content of the alert.
-            severity (str): The severity level of the alert.
+            mentioned_person (str): The email of the person to mention.
 
         Returns:
             dict: The generated payload dictionary for the Teams alert.
         """
-        severity_colors = {
-            "high": "FF0000",   # Red color
-            "medium": "FFA500",  # Orange color
-            "low": "FFFF00"      # Yellow color
-        }
-
-        color = severity_colors.get(severity, "FFFFFF")  # Default to white
 
         payload = {
-            "text": message,
-            "themeColor": color,
-            "title": title,
+            "type":"message",
+            "attachments": [
+                {
+                    "contentType": "application/vnd.microsoft.card.adaptive",
+                    "content": {
+                        "type": "AdaptiveCard",
+                        "body": [
+                            {
+                               "type": "Container",
+                                "items": [
+                                    {
+                                        "type": "TextBlock",
+                                        "text": title,
+                                        "weight": "bolder",
+                                        "size": "large"
+                                    },
+                                    {
+                                        "type": "TextBlock",
+                                        "text": message
+                                    }
+                                ]
+                            },
+                        ],
+                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                        "version": "1.0",
+                        "msteams": {
+                            "width": "Full",
+                            "color": "att",
+                            "entities": [
+                                {
+                                    "type": "mention",
+                                    "text": "<at>" + mentioned_person + "</at>",
+                                    "mentioned": {
+                                        "id": mentioned_person_id,
+                                        "name": mentioned_person
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
         }
 
         return payload
@@ -66,7 +98,7 @@ class Hooks:
         Raises:
             ValueError: If any of the required fields are missing.
         """
-        required_fields = ["title", "message", "severity"]
+        required_fields = ["title", "message"]
         missing_fields = [field for field in required_fields
                           if field not in alert_dict]
 
@@ -76,7 +108,7 @@ class Hooks:
             raise ValueError(error_message)
 
     @staticmethod
-    def send_teams_alert(alert_dict: dict) -> None:
+    def send_teams_alert(alert_dict: dict, project_author, project_author_id: str) -> None:
         """
         Send an alert to Teams using the provided alert dictionary.
 
@@ -85,7 +117,6 @@ class Hooks:
                 It must contain the following fields:
                 - "title": The title of the alert.
                 - "message": The message content of the alert.
-                - "severity": The severity level of the alert.
 
         Raises:
             ValueError: If any of the required fields are missing in
@@ -100,11 +131,9 @@ class Hooks:
         # Extract alert information from the dictionary
         title = alert_dict["title"]
         message = alert_dict["message"]
-        severity = alert_dict["severity"]
 
         # Generate payload
-        payload = Hooks.generate_payload(title, message, severity)
-        teams.payload = payload
-
+        payload = Hooks.generate_payload(title, message, project_author, project_author_id)
+        teams.payload = payload    
         # Send alert
         teams.send()
