@@ -48,7 +48,8 @@ class Hooks:
                                     },
                                     {
                                         "type": "TextBlock",
-                                        "text": message
+                                        "text": message,
+                                        "wrap": True,
                                     }
                                 ]
                             },
