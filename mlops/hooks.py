@@ -4,7 +4,6 @@ Which provides functionalities for sending alerts to Teams.
 """
 
 import pymsteams
-from dotenv import load_dotenv
 import os
 
 
@@ -50,7 +49,7 @@ class Hooks:
                                         "type": "TextBlock",
                                         "text": message,
                                         "wrap": True,
-                                    }
+                                    },
                                 ]
                             },
                         ],
@@ -62,7 +61,7 @@ class Hooks:
                             "entities": [
                                 {
                                     "type": "mention",
-                                    "text": "<at>" + mentioned_person + "</at>",
+                                    "text": f'<at>{mentioned_person}</at>',
                                     "mentioned": {
                                         "id": mentioned_person_id,
                                         "name": mentioned_person
@@ -85,7 +84,6 @@ class Hooks:
         Returns:
             str: The webhook URL retrieved from the environment.
         """
-        load_dotenv()
         return os.getenv('WEBHOOK_URL')
 
     @staticmethod
